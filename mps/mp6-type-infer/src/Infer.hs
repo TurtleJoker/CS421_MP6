@@ -50,8 +50,7 @@ infer env (LetExp x e1 e2) = do
   let tau1' = apply substitution tau1
   let env' = H.insert x (quantifyMonoTy tau1') env
   (tau2, constraints2) <- listen $ infer env' e2
-  tell constraints2
-  return tau2
+  return (tau2, constraints1 ++ constraints2)
 
 infer env (BinOpExp op e1 e2) = do
   tau1 <- infer env e1
