@@ -77,7 +77,7 @@ infer env (IfExp e1 e2 e3) = do
 
 infer env (FunExp x e) = do
   tau1 <- freshTau
-  let env' = H.insert x tau1 env
+  let env' = H.insert x (quantifyMonoTy tau1) env
   tau2 <- infer env' e
   return (TyConst "->" [tau1, tau2])
 
