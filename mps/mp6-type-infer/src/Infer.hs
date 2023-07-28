@@ -61,7 +61,7 @@ infer env (BinOpExp op e1 e2) = do
   constrain tySig (TyConst "->" [TyConst "->" [tau1, tau2], tau])
   return tau
 
-infer env (MonopExp op e1) = do
+infer env (MonOpExp op e1) = do
   tau1 <- infer env e1
   tau <- freshTau
   let tySig = freshInst (monopTySig op)
