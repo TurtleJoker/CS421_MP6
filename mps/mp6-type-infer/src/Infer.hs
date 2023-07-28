@@ -91,13 +91,12 @@ infer env (AppExp e1 e2) = do
 infer env (LetRecExp f x e1 e2) = do
   tau1 <- freshTau
   tau2 <- freshTau
-  let env' = H.insert x tau1 . H.insert f (TyConst "->" [tau1, tau2]) $ env
+  let env' = H.insert x (quantifyMonoTy tau1) . H.insert f (quantifyMonoTy $ TyConst "->" [tau1, tau2]) $ env
   (tau3, constraints1) <- listen $ infer env' e1
   substitution <- unify ((tau2 :~: tau3) : constraints1)
   let env'' = H.insert f (quantifyMonoTy $ apply substitution (TyConst "->" [tau1, tau2])) env
   (tau, constraints2) <- listen $ infer env'' e2
-  tell constraints2
-  return tau
+  return (tau, constraints1 ++ constraints2)
 
 inferInit :: TypeEnv -> Exp -> Infer PolyTy
 inferInit env e = do
