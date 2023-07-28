@@ -44,7 +44,7 @@ infer env (VarExp x) = case H.lookup x env of
   Nothing -> throwError (LookupError x)
   Just s -> freshInst s
 
-infer env (LetInExp x e1 e2) = do
+infer env (LetExp x e1 e2) = do
   (tau1, constraints1) <- listen $ infer env e1
   substitution <- unify constraints1
   let tau1' = apply substitution tau1
@@ -53,7 +53,7 @@ infer env (LetInExp x e1 e2) = do
   tell constraints2
   return tau2
 
-infer env (BinopExp op e1 e2) = do
+infer env (BinOpExp op e1 e2) = do
   tau1 <- infer env e1
   tau2 <- infer env e2
   tau <- freshTau
