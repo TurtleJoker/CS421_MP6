@@ -63,9 +63,12 @@ infer env (BinOpExp op e1 e2) = do
 infer env (MonOpExp op e1) = do
   tau1 <- infer env e1
   tau <- freshTau
-  let tySig = freshInst (monopTySig op)
-  constrain tySig (TyConst "->" [tau1, tau])
-  return tau
+  tySig <- freshInst (monopTySig op)
+  let constraint = tySig :~: (TyConst "->" [tau1, tau])
+  (tau', constraints) <- listen $ infer env e1
+  let constraints' = constraint : constraints
+  substitution <- unify constraints'
+  return $ apply substitution tau'
 
 infer env (IfExp e1 e2 e3) = do
   tau1 <- infer env e1
