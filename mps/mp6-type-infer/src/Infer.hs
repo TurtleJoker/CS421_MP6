@@ -68,7 +68,7 @@ infer env (MonOpExp op e1) = do
   (tau', constraints) <- listen $ infer env e1
   let constraints' = constraint : constraints
   substitution <- unify constraints'
-  return $ apply substitution tau'
+  return (apply substitution tau', constraints')
 
 infer env (IfExp e1 e2 e3) = do
   tau1 <- infer env e1
