@@ -96,7 +96,7 @@ infer env (LetRecExp f x e1 e2) = do
   substitution <- unify ((tau2 :~: tau3) : constraints1)
   let env'' = H.insert f (quantifyMonoTy $ apply substitution (TyConst "->" [tau1, tau2])) env
   (tau, constraints2) <- listen $ infer env'' e2
-  return (tau, constraints1 ++ constraints2)
+  return tau
 
 inferInit :: TypeEnv -> Exp -> Infer PolyTy
 inferInit env e = do
