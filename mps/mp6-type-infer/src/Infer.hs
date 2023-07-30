@@ -50,67 +50,64 @@ applySubst i t = map applyConstraint
   {- question 4: type inference -}
 
 infer :: TypeEnv -> Exp -> Infer MonoTy
-infer env (ConstExp c) = freshInst (constTySig c)
-
-infer env (VarExp x) = case H.lookup x env of
-  Nothing -> throwError (LookupError x)
-  Just s -> freshInst s
-
-infer env (LetExp x e1 e2) = do
-  (tau1, constraints1) <- listen $ infer env e1
-  substitution <- unify constraints1
-  let tau1' = apply substitution tau1
-  let env' = H.insert x (quantifyMonoTy tau1') env
-  (tau2, constraints2) <- listen $ infer env' e2
-  return (tau2, constraints1 ++ constraints2)
-
-infer env (BinOpExp op e1 e2) = do
-  tau1 <- infer env e1
-  tau2 <- infer env e2
-  tau <- freshTau
-  let tySig = freshInst (binopTySig op)
-  constrain tySig (TyConst "->" [TyConst "->" [tau1, tau2], tau])
+infer env (ConstExp c) = do
+  tau <- freshInst (constTySig c)
   return tau
 
-infer env (MonOpExp op e1) = do
+infer env (VarExp x) = case H.lookup x env of
+  Just tau -> freshInst tau
+  Nothing -> throwError (LookupError x)
+
+infer env (LetExp x e1 e2) = do
+  (tau1, phi1) <- listen $ infer env e1
+  sub <- unify phi1
+  let genType = GEN (apply sub env) (apply sub tau1)
+  tau <- infer (H.insert x genType env) e2
+  return tau
+
+infer env (BinopExp op e1 e2) = do
   tau1 <- infer env e1
-  tau <- freshTau
-  tySig <- freshInst (monopTySig op)
-  let constraint = tySig :~: (TyConst "->" [tau1, tau])
-  (tau', constraints) <- listen $ infer env e1
-  let constraints' = constraint : constraints
-  substitution <- unify constraints'
-  return (apply substitution tau', constraints')
+  tau2 <- infer env e2
+  retType <- freshTau
+  let signature = freshInst (binopTySig op)
+  constrain signature (TyFun tau1 (TyFun tau2 retType))
+  return retType
+
+infer env (MonopExp op e1) = do
+  tau1 <- infer env e1
+  retType <- freshTau
+  let signature = freshInst (monopTySig op)
+  constrain signature (TyFun tau1 retType)
+  return retType
 
 infer env (IfExp e1 e2 e3) = do
   tau1 <- infer env e1
   tau2 <- infer env e2
   tau3 <- infer env e3
-  constrain tau1 (TyConst "bool" [])
+  constrain tau1 TyBool
   constrain tau2 tau3
   return tau2
 
 infer env (FunExp x e) = do
   tau1 <- freshTau
-  let env' = H.insert x (quantifyMonoTy tau1) env
-  tau2 <- infer env' e
-  return (TyConst "->" [tau1, tau2])
+  tau2 <- infer (H.insert x (Forall [] tau1) env) e
+  return (TyFun tau1 tau2)
 
-infer env (AppExp e1 e2) = do
-  tau1 <- infer env e1
-  tau2 <- infer env e2
-  tau <- freshTau
-  constrain tau1 (TyConst "->" [tau2, tau])
-  return tau
+infer env (AppExp f e) = do
+  tau1 <- infer env f
+  tau2 <- infer env e
+  retType <- freshTau
+  constrain tau1 (TyFun tau2 retType)
+  return retType
 
 infer env (LetRecExp f x e1 e2) = do
   tau1 <- freshTau
   tau2 <- freshTau
-  let env' = H.insert x (quantifyMonoTy tau1) . H.insert f (quantifyMonoTy $ TyConst "->" [tau1, tau2]) $ env
-  (tau3, constraints1) <- listen $ infer env' e1
-  substitution <- unify ((tau2 :~: tau3) : constraints1)
-  let env'' = H.insert f (quantifyMonoTy $ apply substitution (TyConst "->" [tau1, tau2])) env
-  (tau, constraints2) <- listen $ infer env'' e2
+  tau3 <- infer (H.insert x tau1 (H.insert f (TyFun tau1 tau2) env)) e1
+  phi1 <- listen $ constrain tau2 tau3
+  sub <- unify (tau2 :~: tau3 : phi1)
+  let genType = GEN (apply sub env) (apply sub (TyFun tau1 tau2))
+  tau <- infer (H.insert f genType env) e2
   return tau
 
 inferInit :: TypeEnv -> Exp -> Infer PolyTy
