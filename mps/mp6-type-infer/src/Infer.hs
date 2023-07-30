@@ -70,7 +70,8 @@ infer env (BinOpExp op e1 e2) = do
   tau2 <- infer env e2
   retType <- freshTau
   signature <- freshInst (binopTySig op)
-  constrain signature (funTy tau1 (funTy tau2 retType))
+  signature' <- -- Obtain MonoTy from signature (this part depends on the definition of `constrain`)
+  constrain signature' (funTy tau1 (funTy tau2 retType))
   return retType
 
 infer env (MonOpExp op e1) = do
