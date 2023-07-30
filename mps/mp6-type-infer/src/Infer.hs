@@ -31,7 +31,7 @@ unify ((s :~: t):eqList)
                 throwError (InfiniteType i t) -- InfiniteType error
             else do
                 sub <- unify (applySubst i t eqList) -- Eliminate rule
-                return (H.insert i (apply sub t) sub)
+                return (H.insert i t sub)
         (_, TyVar i) -> unify ((t :~: s) : eqList) -- Orient rule
         (TyConst c1 args1, TyConst c2 args2) -> 
             if c1 == c2 then 
@@ -104,7 +104,6 @@ infer env (LetRecExp f x e1 e2) = do
   tau1 <- freshTau
   tau2 <- freshTau
   let genFunType = gen env (funTy tau1 tau2)
-  constrain tau1 intTy
   tau3 <- infer (H.insert x (Forall [] tau1) (H.insert f genFunType env)) e1
   (_, constraints) <- listen $ constrain tau2 tau3
   sub <- unify (constraints ++ [tau2 :~: tau3])
