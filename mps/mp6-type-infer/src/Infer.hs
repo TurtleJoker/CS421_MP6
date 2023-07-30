@@ -2,7 +2,6 @@ module Infer where
 
 import Common
 
-import Debug.Trace (trace)
 import Control.Monad.Writer (listen)
 import Control.Monad.Except (throwError)
 import Data.Map.Strict as H (Map, insert, lookup, empty, fromList, singleton)
@@ -26,6 +25,7 @@ unify :: [Constraint] -> Infer Substitution
 unify [] = return H.empty
 unify ((s :~: t):eqList) 
     | s == t = unify eqList -- Delete rule
+    | s == TyVar i && t == TyVar j && i == j = throwError (InfiniteType i t)
     | otherwise = case (s, t) of
         (TyVar i, _) -> 
             if occurs i t then 
@@ -105,11 +105,10 @@ infer env (LetRecExp f x e1 e2) = do
   tau1 <- freshTau
   tau2 <- freshTau
   let genFunType = gen env (funTy tau1 tau2)
+  constrain tau1 intTy -- Add this line to enforce that tau1 is int
   tau3 <- infer (H.insert x (Forall [] tau1) (H.insert f genFunType env)) e1
   (_, constraints) <- listen $ constrain tau2 tau3
-  trace ("Constraints: " ++ show constraints) $ return () -- Debug line
   sub <- unify (constraints ++ [tau2 :~: tau3])
-  trace ("Substitution: " ++ show sub) $ return () -- Debug line
   let genType = gen (apply sub env) (apply sub (funTy tau1 tau2))
   tau <- infer (H.insert f genType env) e2
   return tau
