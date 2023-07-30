@@ -61,7 +61,7 @@ infer env (VarExp x) = case H.lookup x env of
 infer env (LetExp x e1 e2) = do
   (tau1, phi1) <- listen $ infer env e1
   sub <- unify phi1
-  let genType = GEN (apply sub env) (apply sub tau1)
+  let genType = gen (apply sub env) (apply sub tau1)
   tau <- infer (H.insert x genType env) e2
   return tau
 
@@ -70,43 +70,43 @@ infer env (BinOpExp op e1 e2) = do
   tau2 <- infer env e2
   retType <- freshTau
   let signature = freshInst (binopTySig op)
-  constrain signature (TyFun tau1 (TyFun tau2 retType))
+  constrain signature (funTy tau1 (funTy tau2 retType))
   return retType
 
 infer env (MonOpExp op e1) = do
   tau1 <- infer env e1
   retType <- freshTau
   let signature = freshInst (monopTySig op)
-  constrain signature (TyFun tau1 retType)
+  constrain signature (funTy tau1 retType)
   return retType
 
 infer env (IfExp e1 e2 e3) = do
   tau1 <- infer env e1
   tau2 <- infer env e2
   tau3 <- infer env e3
-  constrain tau1 TyBool
+  constrain tau1 boolTy
   constrain tau2 tau3
   return tau2
 
 infer env (FunExp x e) = do
   tau1 <- freshTau
   tau2 <- infer (H.insert x (Forall [] tau1) env) e
-  return (TyFun tau1 tau2)
+  return (funTy tau1 tau2)
 
 infer env (AppExp f e) = do
   tau1 <- infer env f
   tau2 <- infer env e
   retType <- freshTau
-  constrain tau1 (TyFun tau2 retType)
+  constrain tau1 (funTy tau2 retType)
   return retType
 
 infer env (LetRecExp f x e1 e2) = do
   tau1 <- freshTau
   tau2 <- freshTau
-  tau3 <- infer (H.insert x tau1 (H.insert f (TyFun tau1 tau2) env)) e1
+  tau3 <- infer (H.insert x tau1 (H.insert f (funTy tau1 tau2) env)) e1
   phi1 <- listen $ constrain tau2 tau3
   sub <- unify (tau2 :~: tau3 : phi1)
-  let genType = GEN (apply sub env) (apply sub (TyFun tau1 tau2))
+  let genType = gen (apply sub env) (apply sub (funTy tau1 tau2))
   tau <- infer (H.insert f genType env) e2
   return tau
 
