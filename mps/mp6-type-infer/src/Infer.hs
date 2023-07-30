@@ -105,9 +105,9 @@ infer env (LetRecExp f x e1 e2) = do
   tau2 <- freshTau
   let funType = funTy tau1 tau2
       env' = H.insert x (Forall [] tau1) (H.insert f (Forall [] funType) env)
-  tau3 <- infer env' e1
-  (_, constraints) <- listen $ constrain tau2 tau3
-  sub <- unify (tau2 :~: tau3 : constraints)
+  (tau3, constraints) <- listen $ infer env' e1
+  constraints' <- constrain tau2 tau3
+  sub <- unify (constraints' ++ constraints)
   let generalizedType = gen (apply sub env) (apply sub funType)
   tau <- infer (H.insert f generalizedType env) e2
   return tau
