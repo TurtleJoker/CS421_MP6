@@ -22,18 +22,30 @@ occurs i tau = i `elem` freeVars tau
   {- question 3: unification -}
 
 unify :: [Constraint] -> Infer Substitution
-unify [] = return substEmpty
-unify ((s :~: t) : cs) 
-  | s == t = unify cs
-  | TyVar i <- s, not (i `occurs` t) = do
-      let subst = substInit i t
-      cs' <- apply subst cs
-      subst' <- unify cs'
-      return (substCompose subst' subst)
-  | TyVar i <- t = unify ((t :~: s) : cs)
-  | TyConst c1 args1 <- s, TyConst c2 args2 <- t, c1 == c2, length args1 == length args2 =
-      unify ((zipWith (:~:) args1 args2) ++ cs)
-  | otherwise = throwError (Can'tMatch s t)
+unify [] = return H.empty
+unify ((s :~: t):eqList) 
+    | s == t = unify eqList -- Delete rule
+    | otherwise = case (s, t) of
+        (TyVar i, _) -> 
+            if occurs i t then 
+                throwError (InfiniteType i t) -- InfiniteType error
+            else do
+                sub <- unify (applySubst i t eqList) -- Eliminate rule
+                return (H.insert i (apply sub t) sub)
+        (_, TyVar i) -> unify ((t :~: s) : eqList) -- Orient rule
+        (TyConst c1 args1, TyConst c2 args2) -> 
+            if c1 == c2 then 
+                unify (zipWith (:~:) args1 args2 ++ eqList) -- Decompose rule
+            else 
+                throwError (Can'tMatch s t) -- Can'tMatch error
+        _ -> throwError (Can'tMatch s t) -- Can'tMatch error
+
+applySubst :: VarId -> MonoTy -> [Constraint] -> [Constraint]
+applySubst i t = map applyConstraint
+    where 
+        applyConstraint (a :~: b) = (applySingleSubst i t a) :~: (applySingleSubst i t b)
+        applySingleSubst i t tau@(TyVar j) = if i == j then t else tau
+        applySingleSubst i t (TyConst c args) = TyConst c (map (applySingleSubst i t) args)
 
   {- question 4: type inference -}
 
