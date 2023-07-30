@@ -25,7 +25,6 @@ unify :: [Constraint] -> Infer Substitution
 unify [] = return H.empty
 unify ((s :~: t):eqList) 
     | s == t = unify eqList -- Delete rule
-    | s == TyVar i && t == TyVar j && i == j = throwError (InfiniteType i t)
     | otherwise = case (s, t) of
         (TyVar i, _) -> 
             if occurs i t then 
