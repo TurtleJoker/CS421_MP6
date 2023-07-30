@@ -104,7 +104,7 @@ infer env (LetRecExp f x e1 e2) = do
   tau1 <- freshTau
   tau2 <- freshTau
   let genFunType = gen env (funTy tau1 tau2)
-  constrain tau1 intTy -- Add this line to enforce that tau1 is int
+  constrain tau1 intTy
   tau3 <- infer (H.insert x (Forall [] tau1) (H.insert f genFunType env)) e1
   (_, constraints) <- listen $ constrain tau2 tau3
   sub <- unify (constraints ++ [tau2 :~: tau3])
