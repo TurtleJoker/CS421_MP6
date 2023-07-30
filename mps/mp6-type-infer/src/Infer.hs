@@ -103,8 +103,10 @@ infer env (AppExp f e) = do
 infer env (LetRecExp f x e1 e2) = do
   tau1 <- freshTau
   tau2 <- freshTau
+  constrain tau1 intTy -- Add constraint for the argument type
   let genFunType = gen env (funTy tau1 tau2)
   tau3 <- infer (H.insert x (Forall [] tau1) (H.insert f genFunType env)) e1
+  constrain tau2 tau3 -- Constrain the return type of the function
   (_, constraints) <- listen $ constrain tau2 tau3
   sub <- unify (tau2 :~: tau3 : constraints)
   let genType = gen (apply sub env) (apply sub (funTy tau1 tau2))
