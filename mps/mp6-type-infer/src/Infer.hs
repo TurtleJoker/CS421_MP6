@@ -31,7 +31,7 @@ unify ((s :~: t):eqList)
                 throwError (InfiniteType i t) -- InfiniteType error
             else do
                 sub <- unify (applySubst i t eqList) -- Eliminate rule
-                return (H.insert i t sub)
+                return (H.insert i (apply sub t) sub)
         (_, TyVar i) -> unify ((t :~: s) : eqList) -- Orient rule
         (TyConst c1 args1, TyConst c2 args2) -> 
             if c1 == c2 then 
