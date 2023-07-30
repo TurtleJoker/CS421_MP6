@@ -65,7 +65,7 @@ infer env (LetExp x e1 e2) = do
   tau <- infer (H.insert x genType env) e2
   return tau
 
-infer env (BinopExp op e1 e2) = do
+infer env (BinOpExp op e1 e2) = do
   tau1 <- infer env e1
   tau2 <- infer env e2
   retType <- freshTau
@@ -73,7 +73,7 @@ infer env (BinopExp op e1 e2) = do
   constrain signature (TyFun tau1 (TyFun tau2 retType))
   return retType
 
-infer env (MonopExp op e1) = do
+infer env (MonOpExp op e1) = do
   tau1 <- infer env e1
   retType <- freshTau
   let signature = freshInst (monopTySig op)
