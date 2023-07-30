@@ -10,9 +10,9 @@ import Data.Map.Strict as H (Map, insert, lookup, empty, fromList, singleton)
 
 freshInst :: PolyTy -> Infer MonoTy
 freshInst (Forall qVars tau) = do
-  freshVars <- mapM (const freshTau) qVars
-  let subst = H.fromList $ zip qVars freshVars
-  return $ apply subst tau
+  freshVars <- mapM (\_ -> freshTau) qVars
+  let substitution = H.fromList (zip qVars freshVars)
+  return (apply substitution tau)
 
   {- question 2: occurs check -}
 
